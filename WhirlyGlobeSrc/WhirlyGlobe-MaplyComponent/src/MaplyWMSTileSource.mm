@@ -317,6 +317,12 @@
     return localName;
 }
 
+// Figure out the name for the tile, if it's local
+- (NSString *)fileNameForTile:(MaplyTileID)tileID
+{
+    return [self cacheFileForTile:tileID];
+}
+
 - (bool)tileIsLocal:(MaplyTileID)tileID
 {
     if (!_cacheDir)
@@ -329,6 +335,36 @@
     return false;
 }
 
+
+- (NSURLRequest *)requestForTile:(MaplyTileID)tileID
+{
+    // SRS string for the coordinate system
+    NSString *srsStr = [self.coordSys getSRS];
+    
+    // Coordinates of the tile we're asking for
+    MaplyCoordinate ll,ur;
+    [self getBoundsLL:&ll ur:&ur];
+    MaplyCoordinate tileLL,tileUR;
+    int numSide = 1<<tileID.level;
+    tileLL.x = tileID.x * (ur.x-ll.x)/numSide + ll.x;
+    tileLL.y = tileID.y * (ur.y-ll.y)/numSide + ll.y;
+    tileUR.x = (tileID.x+1) * (ur.x-ll.x)/numSide + ll.x;
+    tileUR.y = (tileID.y+1) * (ur.y-ll.y)/numSide + ll.y;
+    
+    // Put the layer request together
+    NSMutableString *layerStr = [NSMutableString string];
+    [layerStr appendString:self.layer.name];
+    
+    NSMutableString *reqStr = [NSMutableString stringWithFormat:@"%@?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=%@&SRS=%@&BBOX=%f,%f,%f,%f&WIDTH=%d&HEIGHT=%d&FORMAT=%@&TRANSPARENT=%@",self.baseURL,layerStr,srsStr,tileLL.x,tileLL.y,tileUR.x,tileUR.y,self.tileSize,self.tileSize,self.imageType,(self.transparent ? @"true" : @"false")];
+    
+    [reqStr appendFormat:@"&STYLES=%@",self.style.name ? self.style.name : @""];
+    
+    NSString *fullReqStr = [reqStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    NSURLRequest *urlReq = [NSURLRequest requestWithURL:[NSURL URLWithString:fullReqStr]];
+    
+    return urlReq;
+}
+
 /// Return the image for a given tile
 - (id)imageForTile:(MaplyTileID)tileID
 {
@@ -336,37 +372,18 @@
     bool wasCached = false;
     NSString *fileName = nil;
     // Look for the image in the cache first
-    if (_cacheDir)
+    if (self.cacheDir)
     {
         fileName = [self cacheFileForTile:tileID];
         imgData = [NSData dataWithContentsOfFile:fileName];
-        wasCached = true;
+        if (imgData) {
+            wasCached = true;
+        }
     }
     
     if (!imgData)
     {
-        // SRS string for the coordinate system
-        NSString *srsStr = [_coordSys getSRS];
-
-        // Coordinates of the tile we're asking for
-        MaplyCoordinate ll,ur;
-        [self getBoundsLL:&ll ur:&ur];
-        MaplyCoordinate tileLL,tileUR;
-        int numSide = 1<<tileID.level;
-        tileLL.x = tileID.x * (ur.x-ll.x)/numSide + ll.x;
-        tileLL.y = tileID.y * (ur.y-ll.y)/numSide + ll.y;
-        tileUR.x = (tileID.x+1) * (ur.x-ll.x)/numSide + ll.x;
-        tileUR.y = (tileID.y+1) * (ur.y-ll.y)/numSide + ll.y;
-        
-        // Put the layer request together
-        NSMutableString *layerStr = [NSMutableString string];
-        [layerStr appendString:_layer.name];
-        
-        NSMutableString *reqStr = [NSMutableString stringWithFormat:@"%@?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=%@&STYLES=&SRS=%@&BBOX=%f,%f,%f,%f&WIDTH=%d&HEIGHT=%d&FORMAT=%@&TRANSPARENT=%@",_baseURL,layerStr,srsStr,tileLL.x,tileLL.y,tileUR.x,tileUR.y,_tileSize,_tileSize,_imageType,(_transparent ? @"true" : @"false")];
-        if (_style)
-            [reqStr appendFormat:@"&STYLES=%@",_style.name];
-        NSString *fullReqStr = [reqStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-        NSURLRequest *urlReq = [NSURLRequest requestWithURL:[NSURL URLWithString:fullReqStr]];
+        NSURLRequest *urlReq = [self requestForTile:tileID];
         
         // Fetch the image synchronously
         NSURLResponse *resp = nil;
@@ -374,7 +391,7 @@
         imgData = [NSURLConnection sendSynchronousRequest:urlReq returningResponse:&resp error:&error];
         if (error || !imgData)
         {
-            NSLog(@"Failed to fetch image at: %@",reqStr);
+            NSLog(@"Failed to fetch image at: %@",urlReq);
             return nil;
         }
         
@@ -382,14 +399,13 @@
         if (![[resp MIMEType] hasPrefix:@"image/"])
         {
             NSLog(@"Failed to fetch image at: %@. Got mime type %@ - expected %@",
-                  reqStr, [resp MIMEType], _imageType);
+                  urlReq, [resp MIMEType], self.imageType);
             return nil;
         }
-        
     }
     
     // Let's also write it back out for the cache
-    if (_cacheDir && !wasCached)
+    if (self.cacheDir && !wasCached)
         [imgData writeToFile:fileName atomically:YES];
     
     return imgData;

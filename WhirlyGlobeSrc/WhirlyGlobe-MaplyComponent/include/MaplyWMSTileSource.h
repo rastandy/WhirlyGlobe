@@ -20,6 +20,7 @@
 
 #import "MaplyTileSource.h"
 #import "MaplyCoordinateSystem.h"
+#import "DDXML.h"
 
 /** A bounding box for a specific CRS in that coordinate
     system.  This is part of the Web Map Server parser.
@@ -78,6 +79,9 @@
 @property (nonatomic) MaplyCoordinate ll;
 /// Upper right corner in longitude/latitude
 @property (nonatomic) MaplyCoordinate ur;
+
+// Designate constructor
+- (id)initWithXML:(DDXMLElement *)el parent:(MaplyWMSLayer *)parent;
 
 /// Try to build a coordinate system we understand
 - (MaplyCoordinateSystem *)buildCoordSystem;
@@ -171,6 +175,10 @@
     @param maxZoom The max zoom level we'll query.
   */
 - (id)initWithBaseURL:(NSString *)baseURL capabilities:(MaplyWMSCapabilities *)cap layer:(MaplyWMSLayer *)layer style:(MaplyWMSStyle *)style coordSys:(MaplyCoordinateSystem *)coordSys minZoom:(int)minZoom maxZoom:(int)maxZoom tileSize:(int)tileSize;
+
+- (NSString *)cacheFileForTile:(MaplyTileID)tileID;
+
+- (void)getBoundsLL:(MaplyCoordinate *)ret_ll ur:(MaplyCoordinate *)ret_ur;
 
 @end
 
