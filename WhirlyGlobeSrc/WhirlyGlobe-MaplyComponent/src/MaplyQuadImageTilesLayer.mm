@@ -806,8 +806,6 @@ using namespace WhirlyKit;
     MaplyTileID tileID;
     tileID.x = col;  tileID.y = row;  tileID.level = level;
 
-    frame = -1;
-
     // If this is lower level than we're representing, just fake it
     if (tileID.level < minZoom)
     {
