@@ -1113,17 +1113,18 @@ static const float PerfOutputDelay = 15.0;
 
 - (void)removeActiveObject:(MaplyActiveObject *)theObj
 {
-    if ([NSThread currentThread] != [NSThread mainThread])
-    {
-        NSLog(@"Must call removeActiveObject: on the main thread.");
-        return;
-    }
-    
-    if ([activeObjects containsObject:theObj])
-    {
-        scene->removeActiveModel(theObj);
-        [activeObjects removeObject:theObj];
-    }
+//    if ([NSThread currentThread] != [NSThread mainThread])
+//    {
+//        NSLog(@"Must call removeActiveObject: on the main thread.");
+//        return;
+//    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([activeObjects containsObject:theObj])
+        {
+            scene->removeActiveModel(theObj);
+            [activeObjects removeObject:theObj];
+        }
+    });
 }
 
 - (void)removeActiveObjects:(NSArray *)theObjs
