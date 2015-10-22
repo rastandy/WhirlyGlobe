@@ -213,24 +213,24 @@ void DynamicTexture::addTextureData(int startX,int startY,int width,int height,N
     
 void DynamicTexture::clearTextureData(int startX,int startY,int width,int height)
 {
-    glBindTexture(GL_TEXTURE_2D, glId);
-    
-    if (compressed)
-    {
-        // Note: Can't do this for PKM currently
-//        int pkmType;
-//        int size,thisWidth,thisHeight;
-//        unsigned char *pixData = Texture::ResolvePKM(data,pkmType, size, thisWidth, thisHeight);
-//        if (!pixData || pkmType != type || thisWidth != width || thisHeight != height)
-//            NSLog(@"Compressed texture doesn't match atlas.");
-//        else
-//            glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, startX, startY, thisWidth, thisHeight, pkmType, (GLsizei)size, pixData);
-    } else {
-        std::vector<unsigned char> emptyPixels(width*height*4,0);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, startX, startY, width, height, format, type, emptyPixels.data());
-    }
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
+//    glBindTexture(GL_TEXTURE_2D, glId);
+//    
+//    if (compressed)
+//    {
+//        // Note: Can't do this for PKM currently
+////        int pkmType;
+////        int size,thisWidth,thisHeight;
+////        unsigned char *pixData = Texture::ResolvePKM(data,pkmType, size, thisWidth, thisHeight);
+////        if (!pixData || pkmType != type || thisWidth != width || thisHeight != height)
+////            NSLog(@"Compressed texture doesn't match atlas.");
+////        else
+////            glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, startX, startY, thisWidth, thisHeight, pkmType, (GLsizei)size, pixData);
+//    } else {
+//        std::vector<unsigned char> emptyPixels(width*height*4,0);
+//        glTexSubImage2D(GL_TEXTURE_2D, 0, startX, startY, width, height, format, type, emptyPixels.data());
+//    }
+//    
+//    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void DynamicTexture::setRegion(const Region &region, bool enable)
